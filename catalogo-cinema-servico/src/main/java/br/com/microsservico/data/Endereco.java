@@ -9,12 +9,16 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Cadeira {
+public class Endereco {
 	
-	private String fileira;
+	private String logradouro;
 	
 	private Integer numero;
 	
-	private ESimNao ativa;
+	private String complemento;
+	
+	private String bairro;	
+	
+	private String cep;
 	
 }

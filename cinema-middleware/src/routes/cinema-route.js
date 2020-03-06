@@ -1,94 +1,85 @@
 const express = require('express')
 const router = express.Router()
-const axios = require('axios')
-const { tratarErro, tratarPagina } = require('../classes/tratativas')
-
-const buscarPorId = async (id) => {
-  const url = `${process.env.CATALOGO_CINEMA_API}/${id}`
-  const response = await axios.get(url)
-  const { _links, ...content } = response.data
-  return content
-}
+const logger = require('pino')()
+const { tratarErro } = require('../classes/tratativas')
 
 router.route('/:id')
-  .get(async (req, res) => {
-    try {
-      const id = req.params.id
-      const content = await buscarPorId(id)
-      res.status(200).json(content)
-    } catch (error) {
-      if (!error.response) {
-        const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
-        res.status(500).json(t)
-      } else {
-        if (error.response.status === 404) {
-          const t = tratarErro('Nenhum cinema encontrado pelo id: ' + req.params.id, req.originalUrl, process.env.CATALOGO_CINEMA_API + req.originalUrl, 404, 'NOT_FOUND')
-          res.status(404).json(t)
-        } else {
+  .get((req, res) => {
+    const { buscarPorId } = require('../services/cinema-service')
+    const id = req.params.id
+    buscarPorId(id)
+      .then((cinema) => {
+        res.json(cinema)
+      })
+      .catch((err) => {
+        if (!err.response) {
           const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+          logger.error('Ocorreu um erro ao processar a requisição', err)
           res.status(500).json(t)
+        } else {
+          if (err.response.status === 404) {
+            const t = tratarErro('Nenhum cinema encontrado pelo id: ' + req.params.id, req.originalUrl, process.env.CATALOGO_CINEMA_API + req.originalUrl, 404, 'NOT_FOUND')
+            res.status(404).json(t)
+          } else {
+            const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+            logger.error('Ocorreu um erro ao processar a requisição', err)
+            res.status(500).json(t)
+          }
         }
-      }
-    }
+      })
   })
-  .put(async (req, res) => {
-    try {
-      const { criadoEm, modificadoEm, ...cinema } = req.body
-      const id = req.params.id
-      await buscarPorId(id)
-      const url = `${process.env.CATALOGO_CINEMA_API}/${id}`
-      const response = await axios.put(url, cinema)
-      const { _links, ...content } = response.data
-      res.status(200).json(content)
-    } catch (error) {
-      if (!error.response) {
-        const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
-        res.status(500).json(t)
-      } else {
-        if (error.response.status === 404) {
-          const t = tratarErro('Nenhum cinema encontrado pelo id: ' + req.params.id, req.originalUrl, process.env.CATALOGO_CINEMA_API + req.originalUrl, 404, 'NOT_FOUND')
-          res.status(404).json(t)
-        } else {
+  .put((req, res) => {
+    const id = req.params.id
+    const cinema = req.body
+    const { atualizar } = require('../services/cinema-service')
+    atualizar(id, cinema)
+      .then((cinemaReponse) => {
+        res.json(cinemaReponse)
+      })
+      .catch((err) => {
+        if (!err.response) {
           const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+          logger.error('Ocorreu um erro ao processar a requisição', err)
           res.status(500).json(t)
+        } else {
+          if (err.response.status === 404) {
+            const t = tratarErro('Nenhum cinema encontrado pelo id: ' + req.params.id, req.originalUrl, process.env.CATALOGO_CINEMA_API + req.originalUrl, 404, 'NOT_FOUND')
+            res.status(404).json(t)
+          } else {
+            const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+            logger.error('Ocorreu um erro ao processar a requisição', err)
+            res.status(500).json(t)
+          }
         }
-      }
-    }
+      })
   })
 
 router.route('')
-  .post(async (req, res) => {
-    try {
-      const cinema = req.body
-      const url = `${process.env.CATALOGO_CINEMA_API}`
-      const response = await axios.post(url, cinema)
-      const { _links, ...content } = response.data
-      res.status(200).json(content)
-    } catch (error) {
-      const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
-      res.status(500).json(t)
-    }
-  })
-  .get(async (req, res) => {
-    try {
-      const { numeroPagina, quantidade, ordenacao } = req.query
-      let paginacao = '?'
-      if (numeroPagina) paginacao += `page=${numeroPagina}&`
-      if (quantidade) paginacao += `size=${quantidade}&`
-      if (ordenacao) paginacao += `sort=${ordenacao}`
-      const url = paginacao === '?' ? `${process.env.CATALOGO_CINEMA_API}` : `${process.env.CATALOGO_CINEMA_API}${paginacao}`
-      const response = await axios.get(url)
-      const { _emedded, page } = response.data
-      const conteudoCinemas = _emedded.cinemas
-      const cinemas = conteudoCinemas.map((cinema) => {
-        const { _links, ...content } = cinema
-        return content
+  .post((req, res) => {
+    const cinema = req.body
+    const { criar } = require('../services/cinema-service')
+    criar(cinema)
+      .then((cinemaResponse) => {
+        res.json(cinemaResponse)
       })
-      const pagina = tratarPagina(page.size, cinemas.lenth, page.totalElements, page.totalPages, page.number)
-      const conteudo = { pagina, cinemas }
-      res.status(201).json(conteudo)
-    } catch (error) {
-      const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
-      res.status(500).json(t)
-    }
+      .catch((err) => {
+        logger.error('Ocorreu um erro ao processar a requisição', err)
+        const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+        res.status(500).json(t)
+      })
   })
+  .get((req, res) => {
+    const { numeroPagina, quantidade, ordenacao } = req.query
+    const { buscarPaginado } = require('../services/cinema-service')
+    buscarPaginado(numeroPagina, quantidade, ordenacao)
+      .then((cinemas) => {
+        res.json(cinemas)
+      })
+      .catch((err) => {
+        logger.error('Ocorreu um erro ao processar a requisição', err)
+        const t = tratarErro('Ocorreu um erro ao processar a requisição', req.originalUrl, process.env.HOST + req.originalUrl, 500, 'INTERNAL_SERVER_ERROR')
+        res.status(500).json(t)
+      })
+  })
+
+module.exports = router

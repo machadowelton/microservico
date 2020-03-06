@@ -31,6 +31,8 @@ public class Sala {
 	@LastModifiedDate
 	private Date modificadoEm;
 	
+	private String idCinema;
+	
 	private Set<Cadeira> cadeiras;
 	
 }

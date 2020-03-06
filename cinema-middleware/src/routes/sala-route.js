@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const axios = require('axios')
-const { tratarErro, tratarPagina } = require('../classes/tratativas')
+const { tratarErro, tratarPagina } = require('../utils/tratativas')
 
 const buscarPorId = async (id) => {
   const url = `${process.env.CATALOGO_CINEMA_SALA_API}/${id}`

@@ -31,6 +31,8 @@ public class Cinema {
 	
 	private String nome;
 	
+	private Endereco endereco;
+	
 	private String cidade;
 	
 	private String estado;

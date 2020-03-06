@@ -8,8 +8,24 @@ const tratarPagina = (elementoPorPagina, elementosNaPagina, totalElementos, tota
   return p
 }
 
+const tratarPaginacao = (url, numeroPagina, quantidade, ordenacao) => {
+  let paginacao = '?'
+  if (numeroPagina) paginacao += `page=${numeroPagina}&`
+  if (quantidade) paginacao += `size=${quantidade}&`
+  if (ordenacao) paginacao += `sort=${ordenacao}`
+  const newUrl = `${url}${paginacao}`
+  return removeUltimoEComercialOuInterrogacao(newUrl)
+}
+
+const removeUltimoEComercialOuInterrogacao = (url) => {
+  const rgxECom = /&$/
+  const rgxInte = /\?$/
+  return url.replace(rgxECom, '').replace(rgxInte, '')
+}
+
 module.exports.tratarErro = tratarErro
 module.exports.tratarPagina = tratarPagina
+module.exports.tratarPaginacao = tratarPaginacao
 
 class Erro {
   constructor (msg, path, url, statusCode, statusMessage) {

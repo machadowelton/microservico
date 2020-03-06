@@ -13,10 +13,10 @@ const port = process.env.PORT || 8000
 
 const rotaFilme = require('./src/routes/filme-route')
 const rotaCinema = require('./src/routes/cinema-route')
-const rotaSala = require('./src/routes/sala-route')
+// const rotaSala = require('./src/routes/sala-route')
 app.use('/rest/filmes', rotaFilme)
-app.use('/rest/cinema', rotaCinema)
-app.use('/rest/sala', rotaSala)
+app.use('/rest/cinemas', rotaCinema)
+// app.use('/rest/cinema/:idCinema/sala', rotaSala)
 app.use((req, res, next) => {
   const err = new Error('Recurso não encontrado ou não disponível')
   const t = tratarErro('Recurso não encontrado ou não disponível', req.path, process.env.HOST + req.path, 404, 'NOT_FOUND')
