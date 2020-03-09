@@ -1,52 +1,118 @@
-module.exports.buscarPorId = async (id) => {
-  const url = `${process.env.CATALOGO_CINEMA_SALA_API}/${id}`
+const buscarSalaPorIdEIdCinema = async (id, idCinema) => {
+  const url = `${process.env.CATALOGO_CINEMA_SALA_API}/search/buscarPorIdEIdCinema?id=${id}&idCinema=${idCinema}`
   const { get } = require('axios')
-  const response = get(url)
+  const response = await get(url)
   const { _links, ...content } = response.data
   return content
 }
 
-module.exports.buscarPaginadoPorIdCinema = async (id, numeroPagina, quantidade, ordenacao) => {
-  const { tratarPaginacao } = require('../utils/tratativas')
-  const url = `${process.env.CATALOGO_CINEMA_SALA_API}/search/buscarPorIdCinema?idCinema=${id}&`
-  const completeUrl = tratarPaginacao(url, numeroPagina, quantidade, ordenacao)
-  const { get } = require('axios')
-  const response = await get(completeUrl)
-  const { _embedded, page } = response.data
-  const conteudoSalas = _embedded.salas
-  const salas = conteudoSalas.map((sala) => {
-    const { _links, ...content } = sala
-    return content
-  })
-  const { tratarPagina } = require('../utils/tratativas')
-  const pagina = tratarPagina(page.size, salas.length, page.totalElements, page.totalPages, page.number)
-  const conteudo = { pagina, salas }
-  return conteudo
+
+module.exports.buscarPorIdEIdCinema = async (id, idCinema) => {
+  try {
+    return await buscarSalaPorIdEIdCinema(id, idCinema)
+  } catch (error) {
+    if (!error.response) {
+      const err = new Error('Ocorreu um erro ao processar a requisição')
+      err.status = 500
+      err.statusMessage = 'INTERNAVAL_SERVER_ERROR'
+      throw err
+    } else if (!error.response.status === 404) {
+      const err = new Error(`Nenhuma sala encontrada pelo id: ${id} e idCinema: ${idCinema}`)
+      err.status = 404
+      err.statusMessage = 'NOT_FOUND'
+      throw err
+    }
+  }
+}
+
+module.exports.buscarPorIdCinemaPaginado = async (
+  idCinema,
+  numeroPagina,
+  quantidade,
+  ordenacao
+) => {
+  try {
+    const { tratarPaginacao } = require('../utils/tratativas')
+    const url = tratarPaginacao(
+      `${process.env.CATALOGO_CINEMA_SALA_API}/search/buscarPorIdCinema?idCinema=${idCinema}&`,
+      numeroPagina,
+      quantidade,
+      ordenacao
+    )
+    const { get } = require('axios')
+    const response = await get(url)
+    const { _embedded, page } = response.data
+    const conteudoSala = _embedded.salas
+    const salas = conteudoSala.map(sala => {
+      const { _links, ...content } = sala
+      return content
+    })
+    const { tratarPagina } = require('../utils/tratativas')
+    const pagina = tratarPagina(
+      page.size,
+      salas.length,
+      page.totalElements,
+      page.totalPages,
+      page.number
+    )
+    const conteudo = { pagina, salas }
+    return conteudo
+  } catch (error) {
+    if (!error.response) {
+      const err = new Error('Ocorreu um erro ao processar a requisição')
+      err.status = 500
+      err.statusMessage = 'INTERNAVAL_SERVER_ERROR'
+      throw err
+    } else if (!error.response.status === 404) {
+      const err = new Error(
+        `Nenhuma sala encontrada pelo id: ${id} e idCinema: ${idCinema}`
+      )
+      err.status = 404
+      err.statusMessage = 'NOT_FOUND'
+      throw err
+    }
+  }
 }
 
 module.exports.criar = async (idCinema, sala) => {
-  const { buscarPorid } = require('./cinema-service')
-  const cinema = await buscarPorid(idCinema)
-  const url = `${process.env.CATALOGO_CINEMA_SALA_API}`
-  const newSala = {
-    ...sala,
-    idCinema
+  try {
+    const { buscarPorId } = require('./cinema-service')
+    await buscarPorId(idCinema)
+    const novaSala = { ...sala, idCinema }
+    const url = `${process.env.CATALOGO_CINEMA_SALA_API}`
+    const { post } = require('axios')
+    const response = await post(url, novaSala)
+    const { _links, ...content } = response.data
+    return content
+  } catch (error) {
+    const err = new Error('Ocorreu um erro ao processar a requisição')
+    err.status = 500
+    err.statusMessage = 'INTERNAVAL_SERVER_ERROR'
+    throw err
   }
-  const { post } = require('axios')
-  const response = await post(url, newSala)
-  const { _links, ...content } = response.data
-  const newCinema = addSalaCinema(cinema, content.id)
-  const { atualizar } = require('./cinema-service')
-  await atualizar(cinema.id, newCinema)
-  return content
 }
 
-const addSalaCinema = (cinema, idSala) => {
-  const { salas, ...rest } = cinema
-  salas.push(idSala)
-  const content = {
-    ...rest,
-    salas
+module.exports.atualizar = async (id, idCinema, sala) => {
+  try {
+    await buscarSalaPorIdEIdCinema(id, idCinema)
+    const url = `${process.env.CATALOGO_CINEMA_SALA_API}`
+    const { put } = require('axios')
+    const { response } = await put(url, sala)
+    const { _links, ...content } = response.data
+    return content
+  } catch (error) {
+    if (!error.response) {
+      const err = new Error('Ocorreu um erro ao processar a requisição')
+      err.status = 500
+      err.statusMessage = 'INTERNAVAL_SERVER_ERROR'
+      throw err
+    } else if (!error.response.status === 404) {
+      const err = new Error(
+        `Nenhuma sala encontrada pelo id: ${id} e idCinema: ${idCinema}`
+      )
+      err.status = 404
+      err.statusMessage = 'NOT_FOUND'
+      throw err
+    }    
   }
-  return content
 }
